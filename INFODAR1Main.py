@@ -51,6 +51,8 @@ def openSQLITEDB(filename):
         print('dbfile ' + filename + ' did not exsist, one was created')
     con = sqlite3.connect(filename)
 
+
+#probaly not needed
 def closeSQLITEDB(con):
     con.close()
 
