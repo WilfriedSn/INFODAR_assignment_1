@@ -1,3 +1,6 @@
+import sqlite3
+import os.path # for createSQLITEDB
+
 #returns all lines from a file
 def readFile(fileName):
     file = open(fileName, 'r')
@@ -24,4 +27,37 @@ def transFormWorkload(fileName):
             workload.append(line)
     return workload
 
+def getSqliteInsertCode(filename):
+    lines = readFile(filename)
+    newLines = []
+    for line in lines:
+        #make new list with all non empty lines
+        if line != '\n':
+            newLines.append(line)
+    return newLines
+
+#returns a sqliteconnection to use
+def createSQLITEDB(filename):
+    #check if file exists in the current directory
+    if os.path.exists(filename):
+        print('DBFile ' + filename + ' got deleted and recreated')
+        os.remove(filename)
+    con = sqlite3.connect(filename)
+    return con
+
+def openSQLITEDB(filename):
+    #not?, ! doesnt work
+    if not(os.path.exists(filename)):
+        print('dbfile ' + filename + ' did not exsist, one was created')
+    con = sqlite3.connect(filename)
+
+def closeSQLITEDB(con):
+    con.close()
+
+
+
+
+    
+    
+        
 
