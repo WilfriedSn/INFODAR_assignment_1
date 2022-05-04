@@ -12,10 +12,10 @@ def readFile(fileName):
 #transforms workload to a usable 2d list
 def transFormWorkload(fileName):
     lines = readFile(fileName)
-    workload = [[]]
+    workload = []
     for line in lines:
         #check if it is intended as code
-        if line.__contains__(' times: '):
+        if ' times: ' in line:
             #remove trailing spaces and \n, add semicolon make the second part runnable sqlitecode,
             #   split by " times: " 
             #   first index (amount of times) as a int
