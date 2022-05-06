@@ -53,8 +53,8 @@ def openSQLITEDB(filename):
 def closeSQLITEDB(con):
     con.close()
     
-createSQLITEDB("test")
-print(getSqliteInsertCode("test"))
+createSQLITEDB("test.db")
+print(getSqliteInsertCode("test.db"))
 
 
 
