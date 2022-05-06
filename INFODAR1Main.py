@@ -38,7 +38,7 @@ def getSqliteInsertCode(filename):
 def createSQLITEDB(filename):
     #check if file exists in the current directory
     if os.path.exists(filename):
-        print('DBFile ' + filename + ' got deleted and recreated')
+        print(f'DBFile {filename} got deleted and recreated')
         os.remove(filename)
     con = sqlite3.connect(filename)
     return con
@@ -46,7 +46,7 @@ def createSQLITEDB(filename):
 def openSQLITEDB(filename):
     #not?, ! doesnt work
     if not os.path.exists(filename):
-        print('dbfile ' + filename + ' did not exsist, one was created')
+        print(f'dbfile {filename} did not exsist, one was created')
     con = sqlite3.connect(filename)
 
 
