@@ -40,14 +40,13 @@ def createSQLITEDB(filename):
     if os.path.exists(filename):
         print(f'DBFile {filename} got deleted and recreated')
         os.remove(filename)
-    con = sqlite3.connect(filename)
-    return con
+    return sqlite3.connect(filename)
 
 def openSQLITEDB(filename):
     #not?, ! doesnt work
     if not os.path.exists(filename):
         print(f'dbfile {filename} did not exsist, one was created')
-    con = sqlite3.connect(filename)
+    return sqlite3.connect(filename)
 
 
 #probaly not needed
