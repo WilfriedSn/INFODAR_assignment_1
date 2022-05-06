@@ -4,7 +4,7 @@ import os.path # for createSQLITEDB
 #returns all lines from a file
 def readFile(fileName):
 	with open(fileName, 'r') as f:
-		lines = f.readlines()
+		lines = f.read().split("\n")
 		return lines
 
 
@@ -22,8 +22,7 @@ def transFormWorkload(fileName):
             line = line.strip()
             line += ';'
             line = line.split(' times: ')
-            line[0] = int(line[0])
-            workload.append(line)
+            workload.append((int(line[0]), line[1]))
     return workload
 
 def getSqliteInsertCode(filename):
@@ -31,7 +30,7 @@ def getSqliteInsertCode(filename):
     newLines = []
     for line in lines:
         #make new list with all non empty lines
-        if line != '\n':
+        if line != "":
             newLines.append(line)
     return newLines
 
