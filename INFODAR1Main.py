@@ -3,10 +3,9 @@ import os.path # for createSQLITEDB
 
 #returns all lines from a file
 def readFile(fileName):
-    file = open(fileName, 'r')
-    lines = file.readlines()
-    file.close()
-    return lines
+	with open(fileName, 'r') as f:
+		lines = f.readlines()
+		return lines
 
 
 #transforms workload to a usable 2d list
@@ -47,7 +46,7 @@ def createSQLITEDB(filename):
 
 def openSQLITEDB(filename):
     #not?, ! doesnt work
-    if not(os.path.exists(filename)):
+    if not os.path.exists(filename):
         print('dbfile ' + filename + ' did not exsist, one was created')
     con = sqlite3.connect(filename)
 
@@ -55,6 +54,9 @@ def openSQLITEDB(filename):
 #probaly not needed
 def closeSQLITEDB(con):
     con.close()
+    
+createSQLITEDB("test")
+print(getSqliteInsertCode("test"))
 
 
 
