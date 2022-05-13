@@ -1,0 +1,47 @@
+Voor preprocessing
+db1. Voor elk numeriek datapunt, maak een gesorteerde lijst van de waarden
+db2. Voor elke waarde van elk categorische datapunt, maak een lijst for alle autos gesorteerd op W(tu) / (W(t) and W(u))
+db3. Voor elke waarde van elk categorische datapunt, vindt log(QF(alles)/QF(dit))
+db4. Voor elke auto, kijk op hoeveel van de workload queries de auto applied, sla een lookup van auto naar dit op.
+
+Voor querying
+voor categorische data, lees van db.2 de lijst, en lees op volgorde.
+voor numerieke data, binSearch in db1 naar de waarde, en lees naar voor en achter.
+Doe topK op deze lijsten. Met doel functie
+1*numerieke data + db3(dit)*categorische data
+break ties met db4
+Break further ties randomly
+
+Initial DB:
+id, brand, price, speed
+1, ford, 50, 140
+2, ford, 80, 100
+3, vw, 2, 30
+4, fer, 10000, 200
+
+Searches:
+ford
+ford
+ford
+fer
+vw
+ford or vw
+ford or vw
+
+Our dbs:
+
+price (3 2) (1 50) (2 80) (4 10000)
+speed (3 30) (2 100) (1 140) (4 200)
+
+ford (1 1) (2 1) (3 0.33) (4 0)
+vw (3 1) (1 0.33) (2 0.33) (4 0)
+fer (4 1) (1 0) (2 0) (3 0)
+
+ford 0.5
+vw 0.25
+fer 0.25
+
+1: 5
+2: 5
+3: 3
+4: 1
