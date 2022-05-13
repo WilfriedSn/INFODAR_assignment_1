@@ -58,23 +58,17 @@ def closeSQLITEDB(con):
 
 #transform CEQ to SQLITEcode
 def transformCEQ(line, table):
-    #split line by ","    
-    result = []
+    #split line by "," 
+    k = 10
     line = line.split(",")
     #check if k is predefined or not, add 
     if line[0][0] == "k":
-        result[0] = (line[0].remove("k = ")).toInt()
+        k = (line[0].remove("k = ")).toInt()
         #get the rest of line combined
-        line[0] = ""
-        for i in range(1, len(line) - 1):
-            line[0] += line[i] + " AND"
-        line[0] += line[i]
+        andQuery = line[1:].join(" AND ")
     else:
-        result[0] = 10
-        for i in range(0, len(line) - 1):
-            line[0] += line[i] + " AND"
-        line[0] += line[i]
-    result[1] = "SELECT * FROM {table} WHERE {line[0]}"
+        andQuery = line.join(" AND ")
+    result = (k, f"SELECT * FROM {table} WHERE {andQuery}")
     return result
 
 
