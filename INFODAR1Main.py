@@ -63,19 +63,19 @@ def transformCEQ(line, table):
     line = line.split(",")
     #check if k is predefined or not, add 
     if line[0][0] == "k":
-        k = (line[0].remove("k = ")).toInt()
+        k = int(line[0][4:])
         #get the rest of line combined
-        andQuery = line[1:].join(" AND ")
+        andQuery = " AND ".join(line[1:])
     else:
-        andQuery = line.join(" AND ")
+        andQuery = " AND ".join(line)
     result = (k, f"SELECT * FROM {table} WHERE {andQuery}")
     return result
 
 
+print(transformCEQ("k = 9, model = ding, year = 1999, price = 50", "table"))
 
-
-createSQLITEDB("test.db")
-print(getSqliteInsertCode("test.db"))
+#createSQLITEDB("test.db")
+#print(getSqliteInsertCode("test.db"))
 
 
 
