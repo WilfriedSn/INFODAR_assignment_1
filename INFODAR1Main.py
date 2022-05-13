@@ -1,8 +1,5 @@
-import re
 import sqlite3
 import os.path # for createSQLITEDB
-from tkinter.tix import Select
-from traceback import format_exc 
 
 #returns all lines from a file
 def readFile(fileName):
