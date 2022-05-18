@@ -1,6 +1,6 @@
 Voor preprocessing
 db1. Voor elk numeriek datapunt, maak een gesorteerde lijst van de waarden
-db2. Voor elke waarde van elk categorische datapunt, maak een lijst for alle autos gesorteerd op W(tu) / (W(t) and W(u))
+db2. Voor elke waarde van elk categorische datapunt, maak een lijst for alle autos gesorteerd op W(tu) / (W(t) + W(u))
 db3. Voor elke waarde van elk categorische datapunt, vindt log(QF(alles)/QF(dit))
 db4. Voor elke auto, kijk op hoeveel van de workload queries de auto applied, sla een lookup van auto naar dit op.
 
@@ -27,21 +27,22 @@ fer
 vw
 ford or vw
 ford or vw
+*(fer or vw or ford)
 
 Our dbs:
 
 price (3 2) (1 50) (2 80) (4 10000)
 speed (3 30) (2 100) (1 140) (4 200)
 
-ford (1 1) (2 1) (3 0.33) (4 0)
-vw (3 1) (1 0.33) (2 0.33) (4 0)
-fer (4 1) (1 0) (2 0) (3 0)
+ford (1 1) (2 1) (3 3/8) (4 1/8)
+vw (3 1) (1 2/7) (2 3/8) (4 1/5)
+fer (4 1) (3 1/5) (2 1/8) (1 1/8)
 
 ford 0.5
 vw 0.25
 fer 0.25
 
-1: 5
-2: 5
-3: 3
-4: 1
+1: 6
+2: 6
+3: 4
+4: 2
