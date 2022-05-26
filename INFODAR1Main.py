@@ -102,10 +102,6 @@ test = fillDB4WorkloadData("workload.txt", connection)
 for i in range(len(test)):
 	print(f"{i} : {test[i]}")
 
-test.sort()
-for i in range(len(test)):
-	print(f"{i} : {test[i]}")
-
 
 #print(transformCEQ("k = 9, model = ding, year = 1999, price = 50", "table"))
 
