@@ -1,3 +1,4 @@
+from multiprocessing import connection
 import sqlite3
 import os.path # for createSQLITEDB
 
@@ -7,23 +8,6 @@ def readFile(fileName):
 		lines = f.read().split("\n")
 		return lines
 
-
-#transforms workload to a usable 2d list
-def transFormWorkload(fileName):
-    lines = readFile(fileName)
-    workload = []
-    for line in lines:
-        #check if it is intended as code
-        if ' times: ' in line:
-            #remove trailing spaces and \n, add semicolon make the second part runnable sqlitecode,
-            #   split by " times: " 
-            #   first index (amount of times) as a int
-            #   second index (the Sqlite code) as a string
-            line = line.strip()
-            line += ';'
-            line = line.split(' times: ')
-            workload.append((int(line[0]), line[1]))
-    return workload
 
 def getSqliteInsertCode(filename):
     lines = readFile(filename)
@@ -68,8 +52,62 @@ def transformCEQ(line, table):
     result = (k, f"SELECT * FROM {table} WHERE {andQuery}")
     return result
 
+#|----------------------------------------------------------------------------------------------------------------------|
+#| db4. Voor elke auto, kijk op hoeveel van de workload queries de auto applied, sla een lookup van auto naar dit op.   |
+#|----------------------------------------------------------------------------------------------------------------------|
 
-print(transformCEQ("k = 9, model = ding, year = 1999, price = 50", "table"))
+#transforms workload to a usable 2d list
+def transFormWorkload(fileName):
+    lines = readFile(fileName)
+    workload = list()
+    for line in lines:
+        #check if it is intended as code
+        if ' times: ' in line:
+            #remove trailing spaces and \n, add semicolon make the second part runnable sqlitecode,
+            #   split by " times: " 
+            #   first index (amount of times) as a int
+            #   second index (the Sqlite code) as a string
+            line = line.strip()
+            line += ';'
+            line = line.split(' times: ')
+            whereClause = line[1].split('FROM autompg')[1]
+            whereClause = "SELECT ID FROM autompg" + whereClause
+            workload.append((int(line[0]), whereClause))
+    return workload
+
+#get ids from sqlite querry
+def getIdsFormDB(query, connection):
+    cursor = connection.cursor()
+    cursor.execute(query)
+    ids = cursor.fetchall()
+    return ids
+
+def fillDB4WorkloadData(filename, connection):
+    workload = transFormWorkload(filename)
+    #create a dictionairy <ID,value>
+    workloadArray = [0]
+    #add 500 0 to workloadArray //shouldbechanged
+    for i in range(400):
+        workloadArray.append(0)
+
+    for line in workload:
+        ids = getIdsFormDB(line[1], connection)
+        for id in ids:
+            workloadArray[id[0]] += line[0]
+    return workloadArray
+
+connection = openSQLITEDB('test.db')
+
+test = fillDB4WorkloadData("workload.txt", connection)
+for i in range(len(test)):
+	print(f"{i} : {test[i]}")
+
+test.sort()
+for i in range(len(test)):
+	print(f"{i} : {test[i]}")
+
+
+#print(transformCEQ("k = 9, model = ding, year = 1999, price = 50", "table"))
 
 #createSQLITEDB("test.db")
 #print(getSqliteInsertCode("test.db"))
