@@ -2,41 +2,25 @@ from multiprocessing import connection
 import sqlite3
 import os.path
 from unittest import result # for createSQLITEDB
-
-#returns all lines from a file
-def readFile(fileName):
-	with open(fileName, 'r') as f:
-		lines = f.read().split("\n")
-		return lines
+import helperFunctions
 
 
-def getSqliteInsertCode(filename):
-	lines = readFile(filename)
-	newLines = []
+#transforms workload to a usable 2d list
+def transFormWorkload(fileName):
+	lines = helperFunctions.readFile(fileName)
+	workload = []
 	for line in lines:
-		#make new list with all non empty lines
-		if line != "":
-			newLines.append(line)
-	return newLines
-
-#returns a sqliteconnection to use
-def createSQLITEDB(filename):
-	#check if file exists in the current directory
-	if os.path.exists(filename):
-		print(f'DBFile {filename} got deleted and recreated')
-		os.remove(filename)
-	return sqlite3.connect(filename)
-
-def openSQLITEDB(filename):
-	#not?, ! doesnt work
-	if not os.path.exists(filename):
-		print(f'dbfile {filename} did not exsist, one was created')
-	return sqlite3.connect(filename)
-
-
-#probaly not needed
-def closeSQLITEDB(con):
-	con.close()
+		#check if it is intended as code
+		if ' times: ' in line:
+			#remove trailing spaces and \n, add semicolon make the second part runnable sqlitecode,
+			#   split by " times: " 
+			#   first index (amount of times) as a int
+			#   second index (the Sqlite code) as a string
+			line = line.strip()
+			line += ';'
+			line = line.split(' times: ')
+			workload.append([int(line[0]), line[1]])
+	return workload
 
 #transform CEQ to SQLITEcode
 def transformCEQ(line, table):
@@ -52,23 +36,6 @@ def transformCEQ(line, table):
 		andQuery = " AND ".join(line)
 	result = (k, f"SELECT * FROM {table} WHERE {andQuery}")
 	return result
-
-#transforms workload to a usable 2d list
-def transFormWorkload(fileName):
-	lines = readFile(fileName)
-	workload = list()
-	for line in lines:
-		#check if it is intended as code
-		if ' times: ' in line:
-			#remove trailing spaces and \n, add semicolon make the second part runnable sqlitecode,
-			#   split by " times: " 
-			#   first index (amount of times) as a int
-			#   second index (the Sqlite code) as a string
-			line = line.strip()
-			line += ';'
-			line = line.split(' times: ')
-			workload.append([int(line[0]), line[1]])
-	return workload
 
 #|----------------------------------------------------------------------------------------------------------------------|
 #| db4. Voor elke auto, kijk op hoeveel van de workload queries de auto applied, sla een lookup van auto naar dit op.   |

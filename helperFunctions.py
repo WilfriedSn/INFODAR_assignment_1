@@ -1,0 +1,40 @@
+from multiprocessing import connection
+import sqlite3
+import os.path
+from unittest import result # for createSQLITEDB
+
+#returns all lines from a file
+def readFile(fileName):
+	with open(fileName, 'r') as f:
+		lines = f.read().split("\n")
+		return lines
+
+
+def getSqliteInsertCode(filename):
+	lines = readFile(filename)
+	newLines = []
+	for line in lines:
+		#make new list with all non empty lines
+		if line != "":
+			newLines.append(line)
+	return newLines
+
+#returns a sqliteconnection to use
+def createSQLITEDB(filename):
+	#check if file exists in the current directory
+	if os.path.exists(filename):
+		print(f'DBFile {filename} got deleted and recreated')
+		os.remove(filename)
+	return sqlite3.connect(filename)
+
+def openSQLITEDB(filename):
+	#not?, ! doesnt work
+	if not os.path.exists(filename):
+		print(f'dbfile {filename} did not exsist, one was created')
+	return sqlite3.connect(filename)
+
+
+#probaly not needed
+def closeSQLITEDB(con):
+	con.close()
+
