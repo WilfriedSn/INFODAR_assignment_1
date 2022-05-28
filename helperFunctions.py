@@ -32,9 +32,3 @@ def openSQLITEDB(filename):
 	if not os.path.exists(filename):
 		print(f'dbfile {filename} did not exsist, one was created')
 	return sqlite3.connect(filename)
-
-
-#probaly not needed
-def closeSQLITEDB(con):
-	con.close()
-
