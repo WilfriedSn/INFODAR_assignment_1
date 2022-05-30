@@ -32,3 +32,10 @@ def openSQLITEDB(filename):
 	if not os.path.exists(filename):
 		print(f'dbfile {filename} did not exsist, one was created')
 	return sqlite3.connect(filename)
+
+#get results from sqlite querry
+def getResultOfQuery(query, connection):
+	cursor = connection.cursor()
+	cursor.execute(query)
+	ids = cursor.fetchall()
+	return ids

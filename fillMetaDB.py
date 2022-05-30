@@ -122,9 +122,8 @@ def createIDFTable(sourcedb, outputdb, attr):
 		workload = json.load(file)
 		for val1 in values:
 			for val2 in values:
-				if val1 <= val2: #To save a bit of space we don't store the difference between ab and ba, the one that comes first alphabically goes first
-					score = getIDFScore(attr, val1, val2, workload)
-					cur.execute(f"INSERT INTO {attr}IDF VALUES ('{val1}', '{val2}', {score})")
+				score = getIDFScore(attr, val1, val2, workload)
+				cur.execute(f"INSERT INTO {attr}IDF VALUES ('{val1}', '{val2}', {score})")
 
 	outputdb.commit()	
 
