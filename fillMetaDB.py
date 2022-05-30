@@ -41,7 +41,7 @@ def transformCEQ(line, table):
 
 
 #|----------------------------------------------------------------------------------------------------------------------|
-#| Create workload.json to more easily read it later																    |
+#| Create workload.json to more easily read the workload data later													    |
 #|----------------------------------------------------------------------------------------------------------------------|
 
 def createWorkloadJson():
@@ -92,6 +92,8 @@ def createIDFTables(sourcedb, outputdb):
 		createIDFTable(sourcedb, outputdb, attr)
 
 def getIDFScore(attr, val1, val2, workload):
+	if val1 == val2:
+		return 1
 	intersect = 0
 	union = 0
 	for query in workload:
