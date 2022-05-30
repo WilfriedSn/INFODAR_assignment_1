@@ -1,12 +1,13 @@
 from asyncio import open_connection
 from multiprocessing import connection
+import random
 import sqlite3
 import os.path
 from unittest import result # for createSQLITEDB
 import helperFunctions
 
 categorischeData = ['brand','model','type']
-metaDBCon = helperFunctions.openSQLITEDB('metaDB.db')
+metaDBCon = helperFunctions.openSQLITEDB('metaDatabase.db')
 
 #transform CEQ to SQLITEcode
 def transformCEQ(line):
@@ -27,6 +28,44 @@ def transformCEQ(line):
 	result = (k, f"SELECT * FROM autompg WHERE {andQuery}", dependenties)
 	return result
 
+#attr[0] = brand
+#attr[1] = weight
+#attr[2] = wanted value (ford)
+def topK(attrNeededValues,k):
+	x = attrNeededValues.length()*k*1.5
+	topK = []
+	for attr in attrNeededValues:
+		if attr[0] in categorischeData:
+			topK.append(getTopXCatagoricalData(attr[0],attr[2]))
+		else:
+			topK.append(getTopXNumericalData(attr[0],attr[2]))
+	...
+
+def getTopXNumericalData(table, x, expectedValue):
+	helperFunctions.getResultOfQuery(metaDBCon, f"SELECT val, QFScore FROM {table}QF WHERE val >= {expectedValue}")
+	helperFunctions.getResultOfQuery(metaDBCon, f"SELECT val, QFScore FROM {table}QF WHERE val < {expectedValue}")
+	
+
+
+def getTopXCatagoricalData(attr, expectedValue):
+	helperFunctions.getResultOfQuery(metaDBCon, f"Select val2, IDF from {attr}IDF where val1 = '{expectedValue}' order by IDF desc;")
+
+def tieBreaker(id1,id2,attr):
+	if (attr == 'NONE'):
+		#a random choice is the same as always choosing the first one
+		return id1
+	else:
+		id1val = helperFunctions.getResultOfQuery(metaDBCon, f"SELECT QFScore FROM {attr}QF WHERE val = {id1}")
+		id2val = helperFunctions.getResultOfQuery(metaDBCon, f"SELECT QFScore FROM {attr}QF WHERE val = {id2}")
+		if (id1val > id2val):
+			return id1
+		else:
+			return id2
+
+
+
+if __name__ == "__main__": #only execute this code when this file is ran directly incase we want to import functions from here
+	...
 
 """
 def processQuery(query, con):
