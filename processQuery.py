@@ -210,7 +210,7 @@ def displayResult(result):
 	maxscore = len(userInput[0])
 	seperationString = "    |"
 	header = f"ID{seperationString+seperationString.join(allPossibleAttributes)+seperationString}"
-	header = header.replace("|type", "       |type       ")
+	header = header.replace("|type", "            |type       ")
 	print (header)
 	print ('_'*len(header))
 	headerCount = header.split("|")
