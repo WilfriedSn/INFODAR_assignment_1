@@ -145,8 +145,8 @@ def getIdValue(values, attrNeededValuess, categorischeIDFDictionairy, importantV
 #gets the top X*2 numerical values from the database
 def getTopXNumericalData(atribute, x, expectedValue):
 	expectedValue = int(expectedValue)
-	toHigherValues = helperFunctions.getResultOfQuery(mainDBCon, f"SELECT id, {attr} FROM autompg WHERE {attr} >= {expectedValue} order by {attr};")
-	toLowerValues = helperFunctions.getResultOfQuery(mainDBCon, f"SELECT id, {attr} FROM autompg WHERE {attr} < {expectedValue} order by {attr} ;")
+	toHigherValues = helperFunctions.getResultOfQuery(mainDBCon, f"SELECT id, {atribute} FROM autompg WHERE {atribute} >= {expectedValue} order by {atribute};")
+	toLowerValues = helperFunctions.getResultOfQuery(mainDBCon, f"SELECT id, {atribute} FROM autompg WHERE {atribute} < {expectedValue} order by {atribute} ;")
 	result = []
 	j = 0
 	k = 0
