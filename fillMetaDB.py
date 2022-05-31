@@ -1,3 +1,4 @@
+from importlib.metadata import metadata
 from multiprocessing import connection
 import sqlite3
 import os.path
@@ -38,6 +39,21 @@ def transformCEQ(line, table):
 		andQuery = " AND ".join(line)
 	result = (k, f"SELECT * FROM {table} WHERE {andQuery}")
 	return result
+
+#|--------------------------------------------------------------------|
+#| Create a table with info on the max and min values of each atribute|
+#|--------------------------------------------------------------------|
+
+
+
+def createMinMaxTable(mainDBConnection, metaDBConnection):
+	helperFunctions.getResultOfQuery(metaDBConnection, "CREATE TABLE minMax (attr text NOT NULL, min real, max real, diff read, PRIMARY KEY (attr))")
+	for attr in ['mpg', 'cylinders', 'displacement', 'horsepower', 'weight', 'acceleration', 'model_year', 'origin']:
+		minVal = helperFunctions.getResultOfQuery(mainDBConnection, f"SELECT MIN({attr}) FROM autompg;")[0][0]
+		maxVal = helperFunctions.getResultOfQuery(mainDBConnection, f"SELECT MAX({attr}) FROM autompg;")[0][0]
+		helperFunctions.insertDataIntoQuery(metaDBConnection, f"INSERT INTO minMax VALUES ('{attr}', {minVal}, {maxVal}, {maxVal - minVal});")
+
+
 
 
 #|----------------------------------------------------------------------------------------------------------------------|
@@ -169,8 +185,11 @@ if __name__ == "__main__": #only execute this code when this file is ran directl
 
 	createIDFTables(mainDb, metaDb)
 
+	createMinMaxTable(mainDb,metaDb)
+
 	metaDb.close()
 	mainDb.close()
+	print("DBS created")
 
 
 

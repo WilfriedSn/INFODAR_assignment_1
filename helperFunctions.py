@@ -39,3 +39,8 @@ def getResultOfQuery(connection, query):
 	cursor.execute(query)
 	ids = cursor.fetchall()
 	return ids
+
+def insertDataIntoQuery(connection, query):
+	cursor = connection.cursor()
+	cursor.execute(query)
+	connection.commit()
