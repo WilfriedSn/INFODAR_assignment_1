@@ -46,25 +46,38 @@ def dependentiesToTopK(dependenties,k):
 		result.append([dep[0],1,dep[1]])
 	return [result,k]
 
+def calcWeightedScore(scores, weights):
+	return sum([x * y for (x, y) in zip(scores, weights)])
+
+
 #attr[0] = brand
 #attr[1] = how importand this atribute is not used but good for future data experts (it is always 1 in out program)
 #attr[2] = wanted value ('ford')
 def topK(attrNeededValuess,k):
+
 	x = len(attrNeededValuess)*k*1.5
 	topK = []
 	categorischeIDFDictionairy = {}
 	attrList = []
 
+	QFWights = []
+
+
+
 	for attr in attrNeededValuess:
 		if attr[0] in categorischeData:
+			QFWights.append(helperFunctions.getResultOfQuery(metaDBCon, f"SELECT QFScore FROM {attr[0]}QF WHERE val = {attr[2]}")[0][0])
 			temp = (getTopXCatagoricalData(attr[0] ,x ,attr[2]))
 			topK.append(temp[0])
 			for cata in temp[1]:
 				categorischeIDFDictionairy[cata[0]] = cata[1]
 		else:
+			QFWights.append(2)
 			topK.append(getTopXNumericalData(attr[0] ,x ,attr[2]))
 		attrList.append(attr[0])
-		
+	
+	print(categorischeIDFDictionairy)
+
 	#setup for topK
 	tempresult = []
 	buffer = []
@@ -73,7 +86,7 @@ def topK(attrNeededValuess,k):
 	#fill maxvalueHelper with the possible modified values of the importance
 	for attr in attrNeededValuess:
 		maxValueHelper.append(attr[1])
-	maxValue = sum(maxValueHelper)
+	maxValue = calcWeightedScore(maxValueHelper, QFWights)
 
 	#get the topK
 	for valIndex in range(min(map(lambda x : len(x), topK))):
@@ -82,10 +95,10 @@ def topK(attrNeededValuess,k):
 				#print(f"SELECT {','.join(attrList)} FROM autompg WHERE id = {topK[i][0][0]}")
 				#print(topK[attrID][valIndex][0])
 				helper = helperFunctions.getResultOfQuery(mainDBCon, f"SELECT {','.join(attrList)} FROM autompg WHERE id = {topK[attrID][valIndex][0]}")
-				helper = getIdValue(helper,attrNeededValuess,categorischeIDFDictionairy, attrID)
+				helper = getIdValue(helper,attrNeededValuess,categorischeIDFDictionairy, attrID, QFWights)
 				buffer.append([topK[attrID][valIndex][0],helper[0]])
 				maxValueHelper[attrID] = helper[1]
-		maxValue = sum(maxValueHelper)
+		maxValue = calcWeightedScore(maxValueHelper, QFWights)
 		for bufferItem in buffer:
 			if (bufferItem[1] >= maxValue):
 				tempresult.append(bufferItem)
@@ -94,50 +107,19 @@ def topK(attrNeededValuess,k):
 		if (len(tempresult)>k):
 			break
 	
-	#strart solving the overflow in the topK
-	tempresult.sort(key=lambda x:x[1],reverse=True) #hopefully this works
-	if len(tempresult) > k:
-		nonties = list(filter(lambda x : x[1] > tempresult[k-1][1], tempresult))
-		tiesSection = tieBreaker(list(filter(lambda x : x[1] == tempresult[k-1][1], tempresult)), k - len(nonties), attrNeededValuess)
-		result = nonties + tiesSection
-	else:
-		result = tempresult
-	return result
-		
-#breaks ties between scores that are te same using the QF
-def tieBreaker(ids,x,attrNeededValuess):
-	categorischeAtributes = []
-	print('hello')
-	for i in range(len(attrNeededValuess)):
-		if attrNeededValuess[i][0] in categorischeData:
-			categorischeAtributes.append(attrNeededValuess[i][0])
-	if len(categorischeAtributes)>0:
-		for id in ids:
-			id[1] = 0
-			for i in range(len(categorischeAtributes)):
-				print(f"SELECT QFScore FROM {attrNeededValuess[i][0]}QF WHERE val = '{categorischeAtributes[i]}'")
-				id[1] += int(helperFunctions.getResultOfQuery(metaDBCon, f"SELECT QFScore FROM {attrNeededValuess[i][0]}QF WHERE val = '{categorischeAtributes[i]}'")[0][0])
-		ids.sort(key=lambda x:x[1],reverse=True)
-	#in case of only numbers return only the first x
-	return ids[0:x]
-
-
-
-
-
-
-
-
+	tempresult.sort(key=lambda x:x[1],reverse=True) 
+	
+	return tempresult[:k]
 			
 #returns the score of the id and returns the new local max value
-def getIdValue(values, attrNeededValuess, categorischeIDFDictionairy, importantValueIndex):
+def getIdValue(values, attrNeededValuess, categorischeIDFDictionairy, importantValueIndex, weights):
 	result = 0
 	values[0] = list(values[0])
 	for i in range(len(attrNeededValuess)):
 		if attrNeededValuess[i][0] not in categorischeData:
-			values[0][i] = 1 / (1+log2(1+abs( int(attrNeededValuess[i][2]) - values[0][i])/  (int(attrNeededValuess[i][2])+values[0][i])))
+			values[0][i] = weights[i] * (1 / (1+log2(1+abs( int(attrNeededValuess[i][2]) - values[0][i])/  (int(attrNeededValuess[i][2])+values[0][i]))))
 		else:
-			values[0][i] = categorischeIDFDictionairy[values[0][i]]
+			values[0][i] = weights[i] * categorischeIDFDictionairy[values[0][i]]
 		if i == importantValueIndex:
 			importantValue = values[0][i]*attrNeededValuess[i][1]
 		result += values[0][i]*attrNeededValuess[i][1]
@@ -230,7 +212,7 @@ def displayResult(result):
 
 if __name__ == "__main__": #only execute this code when this file is ran directly incase we want to import functions from here
 	#userInput = input()
-	userInput = "k = 10, brand = 'ford'"
+	userInput = "k = 10, brand = 'ford', type = 'convertible'"
 	userInput = transformCEQ(userInput)
 	userInput = checkIfValidQuery(dependentiesToTopK(userInput[0], userInput[1]))
 	if userInput != False:
