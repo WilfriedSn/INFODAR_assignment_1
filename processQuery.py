@@ -1,13 +1,17 @@
 from asyncio import open_connection
+from json import tool
 from multiprocessing import connection
 import random
+import re
 import sqlite3
 import os.path
-from unittest import result # for createSQLITEDB
+from unittest import result
+from xml.dom.minidom import Attr # for createSQLITEDB
 import helperFunctions
 
 categorischeData = ['brand','model','type']
 metaDBCon = helperFunctions.openSQLITEDB('metaDatabase.db')
+mainDBCon = helperFunctions.openSQLITEDB('mainDatabase.db')
 
 #transform CEQ to SQLITEcode
 def transformCEQ(line):
@@ -41,14 +45,44 @@ def topK(attrNeededValues,k):
 			topK.append(getTopXNumericalData(attr[0],attr[2]))
 	...
 
-def getTopXNumericalData(table, x, expectedValue):
-	helperFunctions.getResultOfQuery(metaDBCon, f"SELECT val, QFScore FROM {table}QF WHERE val >= {expectedValue}")
-	helperFunctions.getResultOfQuery(metaDBCon, f"SELECT val, QFScore FROM {table}QF WHERE val < {expectedValue}")
+def getTopXNumericalData(attr, x, expectedValue):
+	toHigherValues = helperFunctions.getResultOfQuery(mainDBCon, f"SELECT id, {attr} FROM autompg WHERE {attr} >= {expectedValue} order by {attr} asc limit {round(x)};")
+	toLowerValues = helperFunctions.getResultOfQuery(mainDBCon, f"SELECT id, {attr} FROM autompg WHERE {attr} < {expectedValue} order by {attr} desc limit {round(x)};")
+	result = []
+	j = 0
+	k = 0
+	for i in range(len(toHigherValues)+ len(toLowerValues)):
+		if (abs(toHigherValues[j][1] - expectedValue) <= abs(toLowerValues[k][1] - expectedValue)):
+			result.append(toHigherValues[j])
+			j += 1
+		else:
+			result.append(toLowerValues[k])
+			k += 1
+		if (j >= len(toHigherValues)):
+			result.append(toLowerValues[k:])
+			break
+		if (k >= len(toLowerValues)):
+			result.append(toHigherValues[j:])
+			break
+	return result
+		
+
+
 	
 
 
-def getTopXCatagoricalData(attr, expectedValue):
-	helperFunctions.getResultOfQuery(metaDBCon, f"Select val2, IDF from {attr}IDF where val1 = '{expectedValue}' order by IDF desc;")
+def getTopXCatagoricalData(attr ,x ,expectedValue):
+	Catagoricals = helperFunctions.getResultOfQuery(metaDBCon, f"Select val2, IDF from {attr}IDF where val1 = '{expectedValue}' order by IDF desc;")
+	result = []
+	for i in range(len(Catagoricals)):
+		if (len(result) < x):
+			helpers = (helperFunctions.getResultOfQuery(mainDBCon, f"Select id, {attr} from autompg where {attr} = '{Catagoricals[i][0]}';"))
+			for helper in helpers:
+				result.append([helper[0], Catagoricals[i][1]])
+		else:
+			break
+	result = [result, Catagoricals]
+	return result
 
 def tieBreaker(id1,id2,attr):
 	if (attr == 'NONE'):
@@ -65,7 +99,8 @@ def tieBreaker(id1,id2,attr):
 
 
 if __name__ == "__main__": #only execute this code when this file is ran directly incase we want to import functions from here
-	...
+	print(getTopXCatagoricalData('brand',300 ,'ford'))
+	print(getTopXNumericalData('weight',20 ,3000))
 
 """
 def processQuery(query, con):

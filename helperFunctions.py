@@ -34,7 +34,7 @@ def openSQLITEDB(filename):
 	return sqlite3.connect(filename)
 
 #get results from sqlite querry
-def getResultOfQuery(query, connection):
+def getResultOfQuery(connection, query):
 	cursor = connection.cursor()
 	cursor.execute(query)
 	ids = cursor.fetchall()
