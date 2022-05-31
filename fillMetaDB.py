@@ -3,6 +3,18 @@ import math
 import helperFunctions
 from statistics import stdev
 
+
+def executeQuery(cur, query):
+	filename = None
+	if query[0] == "C":
+		filename = "metadb.txt"
+	if query[0] == "I":
+		filename = "metaload.txt"
+	if filename:
+		with open(filename, "a") as file:
+			file.write(query + "\n")
+	return cur.execute(query)
+
 #transforms workload to a usable 2d list
 def transFormWorkload(fileName):
 	lines = helperFunctions.readFile(fileName)
@@ -34,6 +46,21 @@ def transformCEQ(line, table):
 		andQuery = " AND ".join(line)
 	result = (k, f"SELECT * FROM {table} WHERE {andQuery}")
 	return result
+
+#|--------------------------------------------------------------------|
+#| Create a table with info on the max and min values of each atribute|
+#|--------------------------------------------------------------------|
+
+
+
+def createMinMaxTable(mainDBConnection, metaDBConnection):
+	helperFunctions.getResultOfQuery(metaDBConnection, "CREATE TABLE minMax (attr text NOT NULL, min real, max real, diff read, PRIMARY KEY (attr))")
+	for attr in ['mpg', 'cylinders', 'displacement', 'horsepower', 'weight', 'acceleration', 'model_year', 'origin']:
+		minVal = helperFunctions.getResultOfQuery(mainDBConnection, f"SELECT MIN({attr}) FROM autompg;")[0][0]
+		maxVal = helperFunctions.getResultOfQuery(mainDBConnection, f"SELECT MAX({attr}) FROM autompg;")[0][0]
+		helperFunctions.insertDataIntoQuery(metaDBConnection, f"INSERT INTO minMax VALUES ('{attr}', {minVal}, {maxVal}, {maxVal - minVal});")
+
+
 
 
 #|----------------------------------------------------------------------------------------------------------------------|
@@ -74,7 +101,7 @@ def getAllUniqueVals(db, attr):
 	cur = db.cursor()
 	result = set()
 
-	for row in cur.execute(f"SELECT {attr} FROM autompg"):
+	for row in executeQuery(cur, f"SELECT {attr} FROM autompg"):
 		result.add(row[0])
 	
 	return list(result)
@@ -106,7 +133,7 @@ def getIDFScore(attr, val1, val2, workload):
 
 def createIDFTable(sourcedb, outputdb, attr):
 	cur = outputdb.cursor()
-	cur.execute(f"""CREATE TABLE {attr}IDF (
+	executeQuery(cur, f"""CREATE TABLE {attr}IDF (
 		val1 text NOT NULL,
 		val2 text NOT NULL,
 		IDF real,
@@ -119,7 +146,7 @@ def createIDFTable(sourcedb, outputdb, attr):
 		for val1 in values:
 			for val2 in values:
 				score = getIDFScore(attr, val1, val2, workload)
-				cur.execute(f"INSERT INTO {attr}IDF VALUES ('{val1}', '{val2}', {score})")
+				executeQuery(cur, f"INSERT INTO {attr}IDF VALUES ('{val1}', '{val2}', {score})")
 
 	outputdb.commit()	
 
@@ -128,7 +155,7 @@ def createIDFTable(sourcedb, outputdb, attr):
 #|----------------------------------------------------------------------------------------------------------------------|
 
 def createQFTables(sourcedb, outputdb):
-	totalQF = sourcedb.cursor().execute("SELECT COUNT(*) FROM autompg").fetchone()[0]
+	totalQF = executeQuery(sourcedb.cursor(), "SELECT COUNT(*) FROM autompg").fetchone()[0]
 	for attr in ["brand", "model", "type"]:
 		createQFTable(sourcedb, outputdb, attr, totalQF)
 
@@ -136,7 +163,7 @@ def createQFTable(sourcedb, outputdb, attr, totalQF):
 	sCur = sourcedb.cursor()
 	oCur = outputdb.cursor()
 
-	oCur.execute(f"""CREATE TABLE {attr}QF (
+	executeQuery(oCur, f"""CREATE TABLE {attr}QF (
 		val text NOT NULL,
 		QFScore real,
 		PRIMARY KEY (val)
@@ -145,9 +172,9 @@ def createQFTable(sourcedb, outputdb, attr, totalQF):
 	values = getAllUniqueVals(sourcedb, attr)
 
 	for val in values:
-		valQf = sCur.execute(f"SELECT COUNT(*) FROM autompg WHERE {attr} = '{val}'").fetchone()[0]
+		valQf = executeQuery(sCur, f"SELECT COUNT(*) FROM autompg WHERE {attr} = '{val}'").fetchone()[0]
 		QFScore = math.log(totalQF/valQf, 10)
-		oCur.execute(f"INSERT INTO {attr}QF VALUES ('{val}', {QFScore})")
+		executeQuery(oCur, f"INSERT INTO {attr}QF VALUES ('{val}', {QFScore})")
 	
 	outputdb.commit()
 
@@ -159,15 +186,15 @@ def createStDevTable(sourcedb, outputdb):
 	sCur = sourcedb.cursor()
 	oCur = outputdb.cursor()
 
-	oCur.execute(f"""CREATE TABLE stDev (
+	executeQuery(oCur, f"""CREATE TABLE stDev (
 		attr text NOT NULL,
 		stDev real,
 		PRIMARY KEY (attr)
 	)""")
 
 	for attr in ["mpg", "cylinders", "displacement", "horsepower", "weight", "acceleration", "model_year", "origin"]:
-		scores = list(map(lambda x : x[0], sCur.execute(f"SELECT {attr} FROM autompg").fetchall()))
-		oCur.execute(f"INSERT INTO stDev VALUES ('{attr}', {stdev(scores)})")
+		scores = list(map(lambda x : x[0], executeQuery(sCur, f"SELECT {attr} FROM autompg").fetchall()))
+		executeQuery(oCur, f"INSERT INTO stDev VALUES ('{attr}', {stdev(scores)})")
 
 	outputdb.commit()
 
@@ -177,6 +204,12 @@ def createStDevTable(sourcedb, outputdb):
 #|----------------------------------------------------------------------------------------------------------------------|
 
 if __name__ == "__main__": #only execute this code when this file is ran directly incase we want to import functions from here
+	with open("metadb.txt", "w") as file:
+		file.write("")
+
+	with open("metaload.txt", "w") as file:
+		file.write("")
+	
 	createWorkloadJson()
 
 	metaDb = helperFunctions.createSQLITEDB("metaDatabase.db")
@@ -186,8 +219,94 @@ if __name__ == "__main__": #only execute this code when this file is ran directl
 
 	createIDFTables(mainDb, metaDb)
 
+	createMinMaxTable(mainDb,metaDb)
+
 	createStDevTable(mainDb,metaDb)
 
 	metaDb.close()
 	mainDb.close()
 	print("DBS created")
+
+
+
+"""
+Stuff behind here is obsolite 
+
+#|----------------------------------------------------------------------------------------------------------------------|
+#| db4. Voor elke auto, kijk op hoeveel van de workload queries de auto applied, sla een lookup van auto naar dit op.   |
+#|----------------------------------------------------------------------------------------------------------------------|
+
+def workLoadToDB4(workload):
+	for line in workload:
+		whereClause = line[1].split('FROM autompg')[1]
+		line[1] = "SELECT ID FROM autompg" + whereClause
+	return workload
+
+#get ids from sqlite querry
+def getIdsFormDB(query, connection):
+	cursor = connection.cursor()
+	cursor.execute(query)
+	ids = cursor.fetchall()
+	return ids
+
+def fillDB4WorkloadData(filename, connection):
+	workload = workLoadToDB4(transFormWorkload(filename))
+	#create a dictionairy <ID,value>
+	workloadArray = []
+	#add 500 0 to workloadArray //shouldbechanged
+	for i in range(400):
+		workloadArray.append([i,0])
+
+	for line in workload:
+		ids = getIdsFormDB(line[1], connection)
+		for id in ids:
+			workloadArray[id[0]][1] += line[0]
+	return workloadArray
+
+
+# connection = openSQLITEDB('test.db')
+# test = fillDB4WorkloadData("workload.txt", connection)
+# for i in range(len(test)):
+# 	print(f"{i} : {test[i]}")
+
+
+#|----------------------------------------------------------------------------------------------------------------------|
+#| db3. Voor elke waarde van elk categorische datapunt, vindt log(QF(alles)/QF(dit))									|
+#|----------------------------------------------------------------------------------------------------------------------|
+def workLoadToDB3(catagorishDataPoint, workload):
+	#transform workload to "select catagorishDataPoint, count(id) from workload group by catagorishDataPoint;"
+	for line in workload:
+		whereClause = line[1].split('FROM autompg')[1]
+		whereClause = whereClause.replace(';','')
+		line[1] = f"SELECT {catagorishDataPoint} ,count(ID) FROM autompg {whereClause} group by {catagorishDataPoint};"
+	return workload
+
+def fillDB3WorkloadData(catagorishDataPoint, connection):
+	workload = workLoadToDB3(catagorishDataPoint, transFormWorkload("workload.txt"))
+	#create a list <catagorishDataPoint,amount of times mentioned>
+	workloadArray = list()
+	#create a list <catagorischdataPoint,<workloadarray>>
+	result = list()
+	cursor = connection.cursor()
+	cursor.execute(f"SELECT {catagorishDataPoint},count(ID) FROM autompg group by {catagorishDataPoint};")
+	catagorishDataPoints = cursor.fetchall()
+	print(catagorishDataPoints)
+	for line in catagorishDataPoints:
+		workloadArray.append([line[0], 0])
+	for line in workloadArray:
+
+
+
+	return result
+	
+connection = openSQLITEDB('test.db')
+test = fillDB3WorkloadData("brand", connection)
+
+
+
+#print(transformCEQ("k = 9, model = ding, year = 1999, price = 50", "table"))
+
+#createSQLITEDB("test.db")
+#print(getSqliteInsertCode("test.db"))
+
+"""
