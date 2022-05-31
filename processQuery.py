@@ -102,9 +102,6 @@ def topK(attrNeededValuess,k):
 	for valIndex in range(min(map(lambda x : len(x), topK))):
 		for attrID in range(len(attrNeededValuess)):
 			if (topK[attrID][valIndex][0] not in list(map(lambda x:x[0], tempResult)) and topK[attrID][valIndex][0] not in list(map(lambda x:x[0], buffer))):
-				#print(f"SELECT {','.join(attrList)} FROM autompg WHERE id = {topK[i][0][0]}")
-				#print(topK[attrID][valIndex][0])
-
 				carValues = helperFunctions.getResultOfQuery(mainDBCon, f"SELECT {','.join(attrList)} FROM autompg WHERE id = {topK[attrID][valIndex][0]}") 
 				#calculate the weighted carscore of car and the updateable maxvalue
 				carScore, newTopKMaxVal = getIdValue(carValues,attrNeededValuess,categorischeIDFDictionairy, attrID, QFWights)
