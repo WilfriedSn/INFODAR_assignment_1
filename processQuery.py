@@ -15,6 +15,7 @@ from xml.dom.minidom import Attr # for createSQLITEDB
 import helperFunctions
 
 categorischeData = ['brand','model','type']
+allPossibleAttributes = ['mpg','cylinders','displacement','horsepower','weight','acceleration','model_year','origin','brand','model','type']
 metaDBCon = helperFunctions.openSQLITEDB('metaDatabase.db')
 mainDBCon = helperFunctions.openSQLITEDB('mainDatabase.db')
 attrMaxDiffDictionairy = {}
@@ -44,7 +45,7 @@ def dependentiesToTopK(dependenties,k):
 	for dep in dependenties:
 		dep = dep.split("=")
 		result.append([dep[0],1,dep[1]])
-	return topK(result,k)
+	return [result,k]
 
 #attr[0] = brand
 #attr[1] = how importand this querry is 
@@ -194,16 +195,73 @@ def getTopXCatagoricalData(attr ,x ,expectedValue):
 	return result
 
 
+#check for human errors
+def checkIfValidQuery(userInput):
+	if userInput[1] <=0:
+		userInput[1] = 10
+		print("Invalid number of results, defaulting to 10")
+	for i in range(len(userInput[0])):
+		if userInput[0][i][0] not in allPossibleAttributes:
+			print(f"Invalid attribute: {userInput[0][i][0]}")
+			userInput.remove(userInput[0][i])
+	if len(userInput[0]) ==0:
+		print("Invalid query, no attributes given")
+		return False
 
+	return userInput
+
+def displayResult(result):
+	maxscore = len(userInput[0])
+	seperationString = "    |"
+	header = f"ID{seperationString+seperationString.join(allPossibleAttributes)+seperationString}"
+	header = header.replace("|type", "       |type       ")
+	print (header)
+	print ('_'*len(header))
+	headerCount = header.split("|")
+	for i in range(len(result)):
+		resultQuery = helperFunctions.getResultOfQuery(mainDBCon, f"SELECT * FROM autompg WHERE id = {result[i][0]};")
+		resultString = list(resultQuery[0])
+		resultString = str(resultString)
+		resultString = resultString.split(",")
+		totalResultString = ""
+		if result[i][1] == maxscore:
+			resultString[0] = "*" + resultString[0]
+		for j in range(len(resultString)):
+			resultString[j] = resultString[j].replace("[", "")
+			resultString[j] = resultString[j].replace("]", "")
+			resultString[j] = resultString[j].replace("'", "")
+			resultString[j] = resultString[j].replace(" ", "")
+			totalResultString += resultString[j].ljust(len(headerCount[j]))+ "|"
+		print(totalResultString)
 
 if __name__ == "__main__": #only execute this code when this file is ran directly incase we want to import functions from here
-	#fillMinMaxDictionairy()
-	#print(getIdValue(list(helperFunctions.getResultOfQuery(mainDBCon, "SELECT mpg, cylinders, displacement, brand from autompg where id = 10;")[0]), [['mpg',1,100],['cylinders',1, 3],['displacement',1, 5],['brand',1, 'ford']],0))
-	temp = transformCEQ("k = 10")
-	print(dependentiesToTopK(temp[0],temp[1]))
-	#print(getTopXCatagoricalData('brand',300 ,'ford'))
-	#print(getTopXNumericalData('weight',20 ,3000))
-	print("finished")
+	userInput = input()
+	userInput = transformCEQ(userInput)
+	userInput = checkIfValidQuery(dependentiesToTopK(userInput[0], userInput[1]))
+	if userInput != False:
+		result = topK(userInput[0], userInput[1])
+		displayResult(result)
+		
+
+		
+
+
+			
+		#if (result[i][1] == maxscore):
+				
+
+
+
+
+
+
+
+	#temp = transformCEQ("k = 10, mpg = 15")
+	#print(dependentiesToTopK(temp[0],temp[1]))
+	#print("finished")
+
+
+
 
 """
 def processQuery(query, con):
