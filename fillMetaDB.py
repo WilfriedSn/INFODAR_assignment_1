@@ -1,8 +1,3 @@
-from importlib.metadata import metadata
-from multiprocessing import connection
-import sqlite3
-import os.path
-from unittest import result # for createSQLITEDB
 import json
 import math
 import helperFunctions

@@ -1,17 +1,4 @@
-from ast import While
-from asyncio import open_connection
-from json import tool
-from logging import BufferingFormatter
 import math
-from multiprocessing import connection
-import random
-import re
-import sqlite3
-import os.path
-from tkinter import W
-from tkinter.tix import Select
-from unittest import result
-from xml.dom.minidom import Attr # for createSQLITEDB
 import helperFunctions
 import functools
 import pprint as pp
@@ -41,7 +28,7 @@ def transformCEQ(line):
 	result = (dependenties, k)
 	return result
 
-
+#splits dependeties on = and transports the K
 def dependentiesToTopK(dependenties,k):
 	result = []
 	for dep in dependenties:
@@ -49,8 +36,10 @@ def dependentiesToTopK(dependenties,k):
 		result.append([dep[0],1,dep[1]])
 	return [result,k]
 
+
 def calcWeightedScore(scores, weights):
 	return sum([x * y for (x, y) in zip(scores, weights)])
+
 
 @functools.cache
 def calculateIDFNumerical(queryVal, attr, h, n):
@@ -67,35 +56,25 @@ def getNandH(attr):
 	sourceCur = mainDBCon.cursor()
 	n = sourceCur.execute("SELECT COUNT(*) FROM autompg").fetchone()[0]
 	h = metaCur.execute(f"SELECT stDev FROM stDev WHERE attr = '{attr}'").fetchone()[0]
-
 	return n, h
 
+
 def calculateQFNumerical(targetVal, queryVal, attr):
-
 	queryVal = int(queryVal)
-
 	n, h = getNandH(attr)
-
 	result = math.pow(math.e, -0.5 * math.pow((targetVal-queryVal)/h, 2)) * calculateIDFNumerical(queryVal, attr, h, n)
 	return result
-
-
 
 
 #attr[0] = brand
 #attr[1] = how importand this atribute is not used but good for future data experts (it is always 1 in out program)
 #attr[2] = wanted value ('ford')
 def topK(attrNeededValuess,k):
-
-	x = len(attrNeededValuess)*k*1.5
+	x = len(attrNeededValuess)*k*1.5 + 5
 	topK = []
 	categorischeIDFDictionairy = {}
 	attrList = []
-
 	QFWights = []
-
-
-
 	for attr in attrNeededValuess:
 		if attr[0] in categorischeData:
 			QFWights.append(helperFunctions.getResultOfQuery(metaDBCon, f"SELECT QFScore FROM {attr[0]}QF WHERE val = {attr[2]}")[0][0])
@@ -109,10 +88,9 @@ def topK(attrNeededValuess,k):
 		attrList.append(attr[0])
 
 	#setup for topK
-	tempresult = []
+	tempResult = []
 	buffer = []
 	maxValueHelper = []
-	result = []
 	#fill maxvalueHelper with the possible modified values of the importance
 	for attr in attrNeededValuess:
 		maxValueHelper.append(attr[1])
@@ -126,7 +104,9 @@ def topK(attrNeededValuess,k):
 			if (topK[attrID][valIndex][0] not in list(map(lambda x:x[0], tempresult)) and topK[attrID][valIndex][0] not in list(map(lambda x:x[0], buffer))):
 				#print(f"SELECT {','.join(attrList)} FROM autompg WHERE id = {topK[i][0][0]}")
 				#print(topK[attrID][valIndex][0])
+
 				carValues = helperFunctions.getResultOfQuery(mainDBCon, f"SELECT {','.join(attrList)} FROM autompg WHERE id = {topK[attrID][valIndex][0]}") 
+				#calculate the weighted carscore of car and the updateable maxvalue
 				carScore, newTopKMaxVal = getIdValue(carValues,attrNeededValuess,categorischeIDFDictionairy, attrID, QFWights)
 				carId = topK[attrID][valIndex][0]
 				buffer.append([carId,carScore])
@@ -134,14 +114,15 @@ def topK(attrNeededValuess,k):
 		maxValue = calcWeightedScore(maxValueHelper, QFWights)
 		for bufferItem in buffer:
 			if (bufferItem[1] >= maxValue):
-					tempresult.append(bufferItem)
-					buffer.remove(bufferItem)
-		if (len(tempresult)>k):
+				tempResult.append(bufferItem)
+				buffer.remove(bufferItem)
+	#break when topK is full
+		if (len(tempResult)>k):
 			break
-
-	tempresult.sort(key=lambda x:x[1],reverse=True) 
 	
-	return tempresult[:k]
+	tempResult.sort(key=lambda x:x[1],reverse=True) 
+	
+	return tempResult[:k]
 			
 #returns the score of the id and returns the new local max value
 def getIdValue(values, attrNeededValuess, categorischeIDFDictionairy, importantValueIndex, weights):
@@ -162,7 +143,7 @@ def getIdValue(values, attrNeededValuess, categorischeIDFDictionairy, importantV
 	return [result,importantValue]
 
 #gets the top X*2 numerical values from the database
-def getTopXNumericalData(attr, x, expectedValue):
+def getTopXNumericalData(atribute, x, expectedValue):
 	expectedValue = int(expectedValue)
 	toHigherValues = helperFunctions.getResultOfQuery(mainDBCon, f"SELECT id, {attr} FROM autompg WHERE {attr} >= {expectedValue} order by {attr};")
 	toLowerValues = helperFunctions.getResultOfQuery(mainDBCon, f"SELECT id, {attr} FROM autompg WHERE {attr} < {expectedValue} order by {attr} ;")
@@ -173,6 +154,10 @@ def getTopXNumericalData(attr, x, expectedValue):
 		return toLowerValues
 	elif toLowerValues == []:
 		return toHigherValues
+	result = []
+	j = 0
+	k = 0
+	#combining the 2 sorted lists into one sorted list (sorted by distance from expected value)
 	for i in range(len(toHigherValues)+ len(toLowerValues)):
 		if (abs(toHigherValues[j][1] - expectedValue) <= abs(toLowerValues[k][1] - expectedValue)):
 			result.append(toHigherValues[j])
