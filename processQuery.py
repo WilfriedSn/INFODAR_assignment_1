@@ -12,6 +12,7 @@ import helperFunctions
 categorischeData = ['brand','model','type']
 metaDBCon = helperFunctions.openSQLITEDB('metaDatabase.db')
 mainDBCon = helperFunctions.openSQLITEDB('mainDatabase.db')
+attrMaxDiffDictionairy = {}
 
 #transform CEQ to SQLITEcode
 def transformCEQ(line):
@@ -35,12 +36,13 @@ def transformCEQ(line):
 #attr[0] = brand
 #attr[1] = weight
 #attr[2] = wanted value (ford)
-def topK(attrNeededValues,k):
-	x = attrNeededValues.length()*k*1.5
+def topK(attrNeededValuess,k):
+	fillMinMaxDictionairy
+	x = attrNeededValuess.length()*k*1.5
 	topK = []
 	categorischeIDFDictionairy = {}
 
-	for attr in attrNeededValues:
+	for attr in attrNeededValuess:
 		if attr[0] in categorischeData:
 			temp = (getTopXCatagoricalData(attr[0] ,x ,attr[2]))
 			topK.append(temp[0])
@@ -51,22 +53,35 @@ def topK(attrNeededValues,k):
 	
 	result = []
 	buffer = []
-	maxvalue = ...
+	#calculate max value
+	maxValueHelper = []
+	for i in range(len(attrNeededValuess)):
+		if attrNeededValuess[i][0] not in categorischeData:
+			maxValueHelper.append = attrNeededValuess[i][2]
+		else:
+			maxValueHelper.append = 1
+	maxvalue = getIdValue(maxValueHelper,attrNeededValuess)
 	while (len(result)<k):
-		for i in len(attrNeededValues):
+		for i in len(attrNeededValuess):
 			if (topK[i][0] not in result and topK[i][0] not in buffer):
 				...
 
 
-
+def fillMinMaxDictionairy():
+	helper = helperFunctions.getResultOfQuery(metaDBCon, f"SELECT attr,diff FROM minMax;")
+	for i in range(len(helper)):
+		attrMaxDiffDictionairy[helper[i][0]] = helper[i][1]
 
 			
 #returns the value of the ID
 #input [edited value of all parts], score function
-def getIdValue(values, scoreFunction):
+def getIdValue(values, attrNeededValuess):
 	result = 0
-	for i in range(len(values)):
-		result += values[i]*scoreFunction[i]
+	for i in range(len(attrNeededValuess)):
+		if attrNeededValuess[i][0] not in categorischeData:
+			#(attr max diff-(attrQueryvalue - attrRealValue)^2/maxdiff) with a mininmum of 0 and a max of 1
+			values[i] = max(0, ((attrMaxDiffDictionairy[attrNeededValuess[i][0]] - pow((attrNeededValuess[i][2]-values[i]),2))/attrMaxDiffDictionairy[attrNeededValuess[i][0]]))
+		result += values[i]*attrNeededValuess[1][i]
 	return result
 
 
