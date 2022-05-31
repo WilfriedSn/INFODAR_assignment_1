@@ -18,7 +18,6 @@ categorischeData = ['brand','model','type']
 allPossibleAttributes = ['mpg','cylinders','displacement','horsepower','weight','acceleration','model_year','origin','brand','model','type']
 metaDBCon = helperFunctions.openSQLITEDB('metaDatabase.db')
 mainDBCon = helperFunctions.openSQLITEDB('mainDatabase.db')
-attrMaxDiffDictionairy = {}
 
 #transform CEQ to SQLITEcode
 def transformCEQ(line):
@@ -48,10 +47,9 @@ def dependentiesToTopK(dependenties,k):
 	return [result,k]
 
 #attr[0] = brand
-#attr[1] = how importand this querry is 
+#attr[1] = how importand this atribute is not used but good for future data experts (it is always 1 in out program)
 #attr[2] = wanted value ('ford')
 def topK(attrNeededValuess,k):
-	fillMinMaxDictionairy()
 	x = len(attrNeededValuess)*k*1.5
 	topK = []
 	categorischeIDFDictionairy = {}
@@ -67,17 +65,17 @@ def topK(attrNeededValuess,k):
 			topK.append(getTopXNumericalData(attr[0] ,x ,attr[2]))
 		attrList.append(attr[0])
 		
-	
+	#setup for topK
 	tempresult = []
 	buffer = []
-	#calculate max value
 	maxValueHelper = []
 	result = []
+	#fill maxvalueHelper with the possible modified values of the importance
 	for attr in attrNeededValuess:
 		maxValueHelper.append(attr[1])
 	maxValue = sum(maxValueHelper)
-	
-	print(f"maxvalutehelper: {maxValueHelper}")
+
+	#get the topK
 	for valIndex in range(min(map(lambda x : len(x), topK))):
 		for attrID in range(len(attrNeededValuess)):
 			if (topK[attrID][valIndex][0] not in tempresult and topK[attrID][valIndex][0] not in buffer):
@@ -92,8 +90,11 @@ def topK(attrNeededValuess,k):
 			if (bufferItem[1] >= maxValue):
 				tempresult.append(bufferItem)
 				buffer.remove(bufferItem)
+	#break when topK is full
 		if (len(tempresult)>k):
 			break
+	
+	#strart solving the overflow in the topK
 	tempresult.sort(key=lambda x:x[1],reverse=True) #hopefully this works
 	if len(tempresult) > k:
 		nonties = list(filter(lambda x : x[1] > tempresult[k-1][1], tempresult))
@@ -103,18 +104,19 @@ def topK(attrNeededValuess,k):
 		result = tempresult
 	return result
 		
-
+#breaks ties between scores that are te same using the QF
 def tieBreaker(ids,x,attrNeededValuess):
 	categorischeAtributes = []
-	score = ids[0][1]
+	print('hello')
 	for i in range(len(attrNeededValuess)):
-		if attrNeededValuess[i][1] in categorischeData:
-			categorischeAtributes.append[attrNeededValuess[i][1]]
+		if attrNeededValuess[i][0] in categorischeData:
+			categorischeAtributes.append(attrNeededValuess[i][0])
 	if len(categorischeAtributes)>0:
 		for id in ids:
 			id[1] = 0
 			for i in range(len(categorischeAtributes)):
-				id[1] += helperFunctions.getResultOfQuery(metaDBCon, f"SELECT idf FROM idf WHERE attr = '{categorischeAtributes[i]}'")[0][0]
+				print(f"SELECT QFScore FROM {attrNeededValuess[i][0]}QF WHERE val = '{categorischeAtributes[i]}'")
+				id[1] += int(helperFunctions.getResultOfQuery(metaDBCon, f"SELECT QFScore FROM {attrNeededValuess[i][0]}QF WHERE val = '{categorischeAtributes[i]}'")[0][0])
 		ids.sort(key=lambda x:x[1],reverse=True)
 	#in case of only numbers return only the first x
 	return ids[0:x]
@@ -125,22 +127,15 @@ def tieBreaker(ids,x,attrNeededValuess):
 
 
 
-def fillMinMaxDictionairy():
-	helper = helperFunctions.getResultOfQuery(metaDBCon, f"SELECT attr,diff FROM minMax;")
-	for i in range(len(helper)):
-		attrMaxDiffDictionairy[helper[i][0]] = helper[i][1]
 
 			
-#returns the value of the ID
-#input [edited value of all parts], score function
+#returns the score of the id and returns the new local max value
 def getIdValue(values, attrNeededValuess, categorischeIDFDictionairy, importantValueIndex):
 	result = 0
 	values[0] = list(values[0])
 	for i in range(len(attrNeededValuess)):
 		if attrNeededValuess[i][0] not in categorischeData:
-			#(attr max diff-(attrQueryvalue - attrRealValue)^2/maxdiff) with a mininmum of 0 and a max of 1
 			values[0][i] = 1 / (1+log2(1+abs( int(attrNeededValuess[i][2]) - values[0][i])/  (int(attrNeededValuess[i][2])+values[0][i])))
-			#max(0, ((attrMaxDiffDictionairy[attrNeededValuess[i][0]] - pow((attrNeededValuess[i][2]-values[i]),2))/attrMaxDiffDictionairy[attrNeededValuess[i][0]]))
 		else:
 			values[0][i] = categorischeIDFDictionairy[values[0][i]]
 		if i == importantValueIndex:
@@ -149,11 +144,11 @@ def getIdValue(values, attrNeededValuess, categorischeIDFDictionairy, importantV
 	
 	return [result,importantValue]
 
-
+#gets the top X*2 numerical values from the database
 def getTopXNumericalData(attr, x, expectedValue):
 	expectedValue = int(expectedValue)
-	toHigherValues = helperFunctions.getResultOfQuery(mainDBCon, f"SELECT id, {attr} FROM autompg WHERE {attr} >= {expectedValue} order by {attr} asc limit {round(x)};")
-	toLowerValues = helperFunctions.getResultOfQuery(mainDBCon, f"SELECT id, {attr} FROM autompg WHERE {attr} < {expectedValue} order by {attr} desc limit {round(x)};")
+	toHigherValues = helperFunctions.getResultOfQuery(mainDBCon, f"SELECT id, {attr} FROM autompg WHERE {attr} >= {expectedValue} order by {attr} asc limit {x};")
+	toLowerValues = helperFunctions.getResultOfQuery(mainDBCon, f"SELECT id, {attr} FROM autompg WHERE {attr} < {expectedValue} order by {attr} desc limit {x};")
 	result = []
 	j = 0
 	k = 0
@@ -177,10 +172,7 @@ def getTopXNumericalData(attr, x, expectedValue):
 	return result
 		
 
-
-	
-
-
+#gets the top X CatagoricalDataValues from the database
 def getTopXCatagoricalData(attr ,x ,expectedValue):
 	Catagoricals = helperFunctions.getResultOfQuery(metaDBCon, f"Select val2, IDF from {attr}IDF where val1 = {expectedValue} order by IDF desc;")
 	result = []
@@ -210,6 +202,8 @@ def checkIfValidQuery(userInput):
 
 	return userInput
 
+
+#display a beautiful table
 def displayResult(result):
 	maxscore = len(userInput[0])
 	seperationString = "    |"
@@ -235,61 +229,10 @@ def displayResult(result):
 		print(totalResultString)
 
 if __name__ == "__main__": #only execute this code when this file is ran directly incase we want to import functions from here
-	userInput = input()
+	#userInput = input()
+	userInput = "k = 10, brand = 'ford'"
 	userInput = transformCEQ(userInput)
 	userInput = checkIfValidQuery(dependentiesToTopK(userInput[0], userInput[1]))
 	if userInput != False:
 		result = topK(userInput[0], userInput[1])
 		displayResult(result)
-		
-
-		
-
-
-			
-		#if (result[i][1] == maxscore):
-				
-
-
-
-
-
-
-
-	#temp = transformCEQ("k = 10, mpg = 15")
-	#print(dependentiesToTopK(temp[0],temp[1]))
-	#print("finished")
-
-
-
-
-"""
-def processQuery(query, con):
-	extendedQuery = transformCEQ(query)
-	resultOfBasicQuery = helperFunctions.procesQuery(extendedQuery[1], con)
-	if (resultOfBasicQuery.count() < extendedQuery[0]):
-		...
-	elif(resultOfBasicQuery.count() == extendedQuery[0]):
-		displayResult(resultOfBasicQuery, extendedQuery[0])	
-	else:
-		...
-
-def topK(k, extendedQuery, con):
-	...
-
-def displayResult(result, perfectMachtCount):
-	i = 0
-	for line in result:
-		if i < perfectMachtCount:
-			print(f"* {line}")
-		else:
-			print(f"  {line}")
-	print(f"amount of perfect matches found: {perfectMachtCount}")
-
-
-
-
-output < k => difficult shit
-output = k => result of transfromCEQ
-output > k => Top K
-"""
