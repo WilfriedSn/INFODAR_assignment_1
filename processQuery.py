@@ -156,6 +156,10 @@ def getTopXNumericalData(attr, x, expectedValue):
 	result = []
 	j = 0
 	k = 0
+	if toHigherValues == []:
+		return toLowerValues
+	elif toLowerValues == []:
+		return toHigherValues
 	for i in range(len(toHigherValues)+ len(toLowerValues)):
 		if (abs(toHigherValues[j][1] - expectedValue) <= abs(toLowerValues[k][1] - expectedValue)):
 			result.append(toHigherValues[j])
@@ -195,7 +199,7 @@ def getTopXCatagoricalData(attr ,x ,expectedValue):
 if __name__ == "__main__": #only execute this code when this file is ran directly incase we want to import functions from here
 	#fillMinMaxDictionairy()
 	#print(getIdValue(list(helperFunctions.getResultOfQuery(mainDBCon, "SELECT mpg, cylinders, displacement, brand from autompg where id = 10;")[0]), [['mpg',1,100],['cylinders',1, 3],['displacement',1, 5],['brand',1, 'ford']],0))
-	temp = transformCEQ("k = 100, brand = 'volkswagen', model = 'dasher'")
+	temp = transformCEQ("k = 10")
 	print(dependentiesToTopK(temp[0],temp[1]))
 	#print(getTopXCatagoricalData('brand',300 ,'ford'))
 	#print(getTopXNumericalData('weight',20 ,3000))
