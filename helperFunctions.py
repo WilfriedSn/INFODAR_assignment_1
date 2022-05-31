@@ -44,3 +44,4 @@ def insertDataIntoQuery(connection, query):
 	cursor = connection.cursor()
 	cursor.execute(query)
 	connection.commit()
+

@@ -1,10 +1,14 @@
+from ast import While
 from asyncio import open_connection
 from json import tool
+from logging import BufferingFormatter
 from multiprocessing import connection
 import random
 import re
 import sqlite3
 import os.path
+from tkinter import W
+from tkinter.tix import Select
 from unittest import result
 from xml.dom.minidom import Attr # for createSQLITEDB
 import helperFunctions
@@ -17,6 +21,7 @@ attrMaxDiffDictionairy = {}
 #transform CEQ to SQLITEcode
 def transformCEQ(line):
 	k = 10
+	line = line.replace(";","")
 	#split line by "," 
 	line = line.split(",")
 	#list of all dependenties
@@ -25,22 +30,24 @@ def transformCEQ(line):
 	if line[0][0] == "k":
 		k = int(line[0][4:])
 		#get the rest of line combined
-		andQuery = " AND ".join(line[1:])
 		dependenties = line[1:]
 	else:
-		andQuery = " AND ".join(line)
 		dependenties = line
-	result = (k, f"SELECT * FROM autompg WHERE {andQuery}", dependenties)
+	result = (dependenties, k)
 	return result
 
+
+def dependentiesToTopK(dependenties,k):
+	...
 #attr[0] = brand
-#attr[1] = weight
-#attr[2] = wanted value (ford)
+#attr[1] = how importand this querry is
+#attr[2] = wanted value ('ford')
 def topK(attrNeededValuess,k):
 	fillMinMaxDictionairy
 	x = attrNeededValuess.length()*k*1.5
 	topK = []
 	categorischeIDFDictionairy = {}
+	attrList = []
 
 	for attr in attrNeededValuess:
 		if attr[0] in categorischeData:
@@ -50,21 +57,67 @@ def topK(attrNeededValuess,k):
 				categorischeIDFDictionairy[cata[0]] = cata[1]
 		else:
 			topK.append(getTopXNumericalData(attr[0] ,x ,attr[2]))
+		attrList.append(attr[0])
+		
 	
-	result = []
+	tempresult = []
 	buffer = []
 	#calculate max value
 	maxValueHelper = []
-	for i in range(len(attrNeededValuess)):
-		if attrNeededValuess[i][0] not in categorischeData:
-			maxValueHelper.append = attrNeededValuess[i][2]
-		else:
-			maxValueHelper.append = 1
-	maxvalue = getIdValue(maxValueHelper,attrNeededValuess)
-	while (len(result)<k):
+	result = []
+	for attr in attrNeededValuess:
+		maxValueHelper.append(attr[1])
+	maxValue = sum(maxValueHelper)
+	while (len(tempresult)<k):
 		for i in len(attrNeededValuess):
-			if (topK[i][0] not in result and topK[i][0] not in buffer):
-				...
+			if (topK[i][0] not in tempresult and topK[i][0] not in buffer):
+				helper = helperFunctions.getResultOfQuery(mainDBCon, f"SELECT {attrList.join(',')} FROM autompg WHERE id = {topK[i][0]}")
+				buffer.append([topK[i][0],helper[0]])
+				maxValueHelper[i] = helper[1]
+		maxValue = sum(maxValueHelper)
+		for bufferItem in buffer:
+			if (bufferItem >= maxValue):
+				tempresult.append(bufferItem)
+				buffer.remove(bufferItem)
+	tempresult.sort(key=lambda x:x[1],reverse=True) #hopefully this works
+	if tempresult.length() > k:
+		for i in range(len(tempresult)):
+			if tempresult[i][1] > tempresult[i+1][1]:
+				result.append(tempresult[i])
+				if len(result) == k:
+					break
+			else:
+				j = 0
+				while tempresult[i][1] == tempresult[i+j][1]:
+					j = j + 1
+				if i+j < k:
+					result.append(tempresult[i:i+j])
+				else:
+					result.append(tieBreaker(tempresult[i:i+j],k-i, attrNeededValuess))
+	else:
+		result = tempresult
+	return result
+		
+
+def tieBreaker(ids,x,attrNeededValuess):
+	categorischeAtributes = []
+	score = ids[0][1]
+	for i in len(attrNeededValuess):
+		if attrNeededValuess[i][1] in categorischeData:
+			categorischeAtributes.append[attrNeededValuess[i][1]]
+	if len(categorischeAtributes)>0:
+		for id in ids:
+			id[1] = 0
+			for i in len(categorischeAtributes):
+				id[1] += helperFunctions.getResultOfQuery(metaDBCon, f"SELECT idf FROM idf WHERE attr = '{categorischeAtributes[i]}'")[0][0]
+		ids.sort(key=lambda x:x[1],reverse=True)
+	#in case of only numbers return only the first x
+	return ids[0:x]
+
+
+
+
+
 
 
 def fillMinMaxDictionairy():
@@ -75,14 +128,18 @@ def fillMinMaxDictionairy():
 			
 #returns the value of the ID
 #input [edited value of all parts], score function
-def getIdValue(values, attrNeededValuess):
+def getIdValue(values, attrNeededValuess, categorischeIDFDictionairy, importantValueIndex):
 	result = 0
 	for i in range(len(attrNeededValuess)):
 		if attrNeededValuess[i][0] not in categorischeData:
 			#(attr max diff-(attrQueryvalue - attrRealValue)^2/maxdiff) with a mininmum of 0 and a max of 1
 			values[i] = max(0, ((attrMaxDiffDictionairy[attrNeededValuess[i][0]] - pow((attrNeededValuess[i][2]-values[i]),2))/attrMaxDiffDictionairy[attrNeededValuess[i][0]]))
-		result += values[i]*attrNeededValuess[1][i]
-	return result
+		else:
+			values[i] = categorischeIDFDictionairy[values[i]]
+		if i == importantValueIndex:
+			importantValue = values[i]*attrNeededValuess[i][1]
+		result += values[i]*attrNeededValuess[i][1]
+	return [result,importantValue]
 
 
 def getTopXNumericalData(attr, x, expectedValue):
@@ -124,23 +181,16 @@ def getTopXCatagoricalData(attr ,x ,expectedValue):
 	result = [result, Catagoricals]
 	return result
 
-def tieBreaker(id1,id2,attr):
-	if (attr == 'NONE'):
-		#a random choice is the same as always choosing the first one
-		return id1
-	else:
-		id1val = helperFunctions.getResultOfQuery(metaDBCon, f"SELECT QFScore FROM {attr}QF WHERE val = {id1}")
-		id2val = helperFunctions.getResultOfQuery(metaDBCon, f"SELECT QFScore FROM {attr}QF WHERE val = {id2}")
-		if (id1val > id2val):
-			return id1
-		else:
-			return id2
 
 
 
 if __name__ == "__main__": #only execute this code when this file is ran directly incase we want to import functions from here
-	print(getTopXCatagoricalData('brand',300 ,'ford'))
-	print(getTopXNumericalData('weight',20 ,3000))
+	#fillMinMaxDictionairy()
+	#print(getIdValue(list(helperFunctions.getResultOfQuery(mainDBCon, "SELECT mpg, cylinders, displacement, brand from autompg where id = 10;")[0]), [['mpg',1,100],['cylinders',1, 3],['displacement',1, 5],['brand',1, 'ford']],0))
+	print(transformCEQ("cylinders = 4, brand = 'ford',cylinders = 4, brand = 'ford',cylinders = 4, brand = 'ford';"))
+	#print(getTopXCatagoricalData('brand',300 ,'ford'))
+	#print(getTopXNumericalData('weight',20 ,3000))
+	print("finished")
 
 """
 def processQuery(query, con):
