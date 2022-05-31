@@ -1,0 +1,38 @@
+CREATE TABLE brandQF (
+		val text NOT NULL,
+		QFScore real,
+		PRIMARY KEY (val)
+	)
+CREATE TABLE modelQF (
+		val text NOT NULL,
+		QFScore real,
+		PRIMARY KEY (val)
+	)
+CREATE TABLE typeQF (
+		val text NOT NULL,
+		QFScore real,
+		PRIMARY KEY (val)
+	)
+CREATE TABLE brandIDF (
+		val1 text NOT NULL,
+		val2 text NOT NULL,
+		IDF real,
+		PRIMARY KEY (val1, val2)
+	)
+CREATE TABLE modelIDF (
+		val1 text NOT NULL,
+		val2 text NOT NULL,
+		IDF real,
+		PRIMARY KEY (val1, val2)
+	)
+CREATE TABLE typeIDF (
+		val1 text NOT NULL,
+		val2 text NOT NULL,
+		IDF real,
+		PRIMARY KEY (val1, val2)
+	)
+CREATE TABLE stDev (
+		attr text NOT NULL,
+		stDev real,
+		PRIMARY KEY (attr)
+	)

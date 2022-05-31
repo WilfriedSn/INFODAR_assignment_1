@@ -231,8 +231,8 @@ def displayResult(result):
 		print(totalResultString)
 
 if __name__ == "__main__": #only execute this code when this file is ran directly incase we want to import functions from here
-	#userInput = input()
-	userInput = "k = 10, horsepower = 100, brand = 'ford'"
+	userInput = input()
+	#userInput = "k = 10, horsepower = 100, brand = 'ford'" # for testing
 	userInput = transformCEQ(userInput)
 	userInput = checkIfValidQuery(dependentiesToTopK(userInput[0], userInput[1]))
 	if userInput != False:
