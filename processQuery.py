@@ -101,7 +101,7 @@ def topK(attrNeededValuess,k):
 	#get the topK
 	for valIndex in range(min(map(lambda x : len(x), topK))):
 		for attrID in range(len(attrNeededValuess)):
-			if (topK[attrID][valIndex][0] not in list(map(lambda x:x[0], tempresult)) and topK[attrID][valIndex][0] not in list(map(lambda x:x[0], buffer))):
+			if (topK[attrID][valIndex][0] not in list(map(lambda x:x[0], tempResult)) and topK[attrID][valIndex][0] not in list(map(lambda x:x[0], buffer))):
 				#print(f"SELECT {','.join(attrList)} FROM autompg WHERE id = {topK[i][0][0]}")
 				#print(topK[attrID][valIndex][0])
 
