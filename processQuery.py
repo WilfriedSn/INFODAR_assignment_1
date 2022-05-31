@@ -2,7 +2,7 @@ from ast import While
 from asyncio import open_connection
 from json import tool
 from logging import BufferingFormatter
-from math import log2
+import math
 from multiprocessing import connection
 import random
 import re
@@ -13,6 +13,8 @@ from tkinter.tix import Select
 from unittest import result
 from xml.dom.minidom import Attr # for createSQLITEDB
 import helperFunctions
+import functools
+
 
 categorischeData = ['brand','model','type']
 allPossibleAttributes = ['mpg','cylinders','displacement','horsepower','weight','acceleration','model_year','origin','brand','model','type']
@@ -49,6 +51,35 @@ def dependentiesToTopK(dependenties,k):
 def calcWeightedScore(scores, weights):
 	return sum([x * y for (x, y) in zip(scores, weights)])
 
+@functools.cache
+def calculateIDFNumerical(queryVal, attr, h, n):
+	cur = mainDBCon.cursor()
+	values = list(map(lambda x : x[0], cur.execute(f"SELECT {attr} FROM autompg").fetchall()))
+	divider = 0
+	for v in values:
+		divider += math.pow(math.e, -0.5 * math.pow((v-queryVal)/h, 2))
+	return math.log(n/divider, 10)
+
+@functools.cache
+def getNandH(attr):
+	metaCur = metaDBCon.cursor()
+	sourceCur = mainDBCon.cursor()
+	n = sourceCur.execute("SELECT COUNT(*) FROM autompg").fetchone()[0]
+	h = metaCur.execute(f"SELECT stDev FROM stDev WHERE attr = '{attr}'").fetchone()[0]
+
+	return n, h
+
+def calculateQFNumerical(targetVal, queryVal, attr):
+
+	queryVal = int(queryVal)
+
+	n, h = getNandH(attr)
+
+	result = math.pow(math.e, -0.5 * math.pow((targetVal-queryVal)/h, 2)) * calculateIDFNumerical(queryVal, attr, h, n)
+	return result
+
+
+
 
 #attr[0] = brand
 #attr[1] = how importand this atribute is not used but good for future data experts (it is always 1 in out program)
@@ -75,8 +106,6 @@ def topK(attrNeededValuess,k):
 			QFWights.append(2)
 			topK.append(getTopXNumericalData(attr[0] ,x ,attr[2]))
 		attrList.append(attr[0])
-	
-	print(categorischeIDFDictionairy)
 
 	#setup for topK
 	tempresult = []
@@ -94,10 +123,11 @@ def topK(attrNeededValuess,k):
 			if (topK[attrID][valIndex][0] not in tempresult and topK[attrID][valIndex][0] not in buffer):
 				#print(f"SELECT {','.join(attrList)} FROM autompg WHERE id = {topK[i][0][0]}")
 				#print(topK[attrID][valIndex][0])
-				helper = helperFunctions.getResultOfQuery(mainDBCon, f"SELECT {','.join(attrList)} FROM autompg WHERE id = {topK[attrID][valIndex][0]}")
-				helper = getIdValue(helper,attrNeededValuess,categorischeIDFDictionairy, attrID, QFWights)
-				buffer.append([topK[attrID][valIndex][0],helper[0]])
-				maxValueHelper[attrID] = helper[1]
+				carValues = helperFunctions.getResultOfQuery(mainDBCon, f"SELECT {','.join(attrList)} FROM autompg WHERE id = {topK[attrID][valIndex][0]}") 
+				carScore, newTopKMaxVal = getIdValue(carValues,attrNeededValuess,categorischeIDFDictionairy, attrID, QFWights)
+				carId = topK[attrID][valIndex][0]
+				buffer.append([carId,carScore])
+				maxValueHelper[attrID] = newTopKMaxVal
 		maxValue = calcWeightedScore(maxValueHelper, QFWights)
 		for bufferItem in buffer:
 			if (bufferItem[1] >= maxValue):
@@ -106,7 +136,7 @@ def topK(attrNeededValuess,k):
 	#break when topK is full
 		if (len(tempresult)>k):
 			break
-	
+
 	tempresult.sort(key=lambda x:x[1],reverse=True) 
 	
 	return tempresult[:k]
@@ -116,14 +146,17 @@ def getIdValue(values, attrNeededValuess, categorischeIDFDictionairy, importantV
 	result = 0
 	values[0] = list(values[0])
 	for i in range(len(attrNeededValuess)):
+		if i == importantValueIndex:
+			if attrNeededValuess[i][0] not in categorischeData:
+				importantValue = calculateQFNumerical(values[0][i], attrNeededValuess[i][2], attrNeededValuess[i][0])
+			else:
+				importantValue = categorischeIDFDictionairy[values[0][i]]
 		if attrNeededValuess[i][0] not in categorischeData:
-			values[0][i] = weights[i] * (1 / (1+log2(1+abs( int(attrNeededValuess[i][2]) - values[0][i])/  (int(attrNeededValuess[i][2])+values[0][i]))))
+			values[0][i] = weights[i] * calculateQFNumerical(values[0][i], attrNeededValuess[i][2], attrNeededValuess[i][0])
 		else:
 			values[0][i] = weights[i] * categorischeIDFDictionairy[values[0][i]]
-		if i == importantValueIndex:
-			importantValue = values[0][i]*attrNeededValuess[i][1]
 		result += values[0][i]*attrNeededValuess[i][1]
-	
+
 	return [result,importantValue]
 
 #gets the top X*2 numerical values from the database
@@ -211,8 +244,8 @@ def displayResult(result):
 		print(totalResultString)
 
 if __name__ == "__main__": #only execute this code when this file is ran directly incase we want to import functions from here
-	#userInput = input()
-	userInput = "k = 10, brand = 'ford', type = 'convertible'"
+	userInput = input()
+	#userInput = "k = 10, horsepower = 100, brand = 'ford'"
 	userInput = transformCEQ(userInput)
 	userInput = checkIfValidQuery(dependentiesToTopK(userInput[0], userInput[1]))
 	if userInput != False:

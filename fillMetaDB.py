@@ -6,6 +6,7 @@ from unittest import result # for createSQLITEDB
 import json
 import math
 import helperFunctions
+from statistics import stdev
 
 
 #transforms workload to a usable 2d list
@@ -172,6 +173,27 @@ def createQFTable(sourcedb, outputdb, attr, totalQF):
 	outputdb.commit()
 
 #|----------------------------------------------------------------------------------------------------------------------|
+#| For numerical attrs, calculate stdev																				    |
+#|----------------------------------------------------------------------------------------------------------------------|
+
+def createStDevTable(sourcedb, outputdb):
+	sCur = sourcedb.cursor()
+	oCur = outputdb.cursor()
+
+	oCur.execute(f"""CREATE TABLE stDev (
+		attr text NOT NULL,
+		stDev real,
+		PRIMARY KEY (attr)
+	)""")
+
+	for attr in ["mpg", "cylinders", "displacement", "horsepower", "weight", "acceleration", "model_year", "origin"]:
+		scores = list(map(lambda x : x[0], sCur.execute(f"SELECT {attr} FROM autompg").fetchall()))
+		oCur.execute(f"INSERT INTO stDev VALUES ('{attr}', {stdev(scores)})")
+
+	outputdb.commit()
+
+
+#|----------------------------------------------------------------------------------------------------------------------|
 #| Execute all the required code																					    |
 #|----------------------------------------------------------------------------------------------------------------------|
 
@@ -186,6 +208,8 @@ if __name__ == "__main__": #only execute this code when this file is ran directl
 	createIDFTables(mainDb, metaDb)
 
 	createMinMaxTable(mainDb,metaDb)
+
+	createStDevTable(mainDb,metaDb)
 
 	metaDb.close()
 	mainDb.close()
