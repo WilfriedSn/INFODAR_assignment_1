@@ -1,17 +1,4 @@
-from ast import While
-from asyncio import open_connection
-from json import tool
-from logging import BufferingFormatter
 import math
-from multiprocessing import connection
-import random
-import re
-import sqlite3
-import os.path
-from tkinter import W
-from tkinter.tix import Select
-from unittest import result
-from xml.dom.minidom import Attr # for createSQLITEDB
 import helperFunctions
 import functools
 
@@ -111,7 +98,6 @@ def topK(attrNeededValuess,k):
 	tempresult = []
 	buffer = []
 	maxValueHelper = []
-	result = []
 	#fill maxvalueHelper with the possible modified values of the importance
 	for attr in attrNeededValuess:
 		maxValueHelper.append(attr[1])
@@ -244,8 +230,8 @@ def displayResult(result):
 		print(totalResultString)
 
 if __name__ == "__main__": #only execute this code when this file is ran directly incase we want to import functions from here
-	userInput = input()
-	#userInput = "k = 10, horsepower = 100, brand = 'ford'"
+	#userInput = input()
+	userInput = "k = 10, horsepower = 100, brand = 'ford'"
 	userInput = transformCEQ(userInput)
 	userInput = checkIfValidQuery(dependentiesToTopK(userInput[0], userInput[1]))
 	if userInput != False:
