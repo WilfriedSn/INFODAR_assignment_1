@@ -2,6 +2,7 @@ from ast import While
 from asyncio import open_connection
 from json import tool
 from logging import BufferingFormatter
+from math import log2
 from multiprocessing import connection
 import random
 import re
@@ -74,16 +75,18 @@ def topK(attrNeededValuess,k):
 	for attr in attrNeededValuess:
 		maxValueHelper.append(attr[1])
 	maxValue = sum(maxValueHelper)
-	#print(topK)
+	
+	print(f"maxvalutehelper: {maxValueHelper}")
 	for valIndex in range(min(map(lambda x : len(x), topK))):
 		for attrID in range(len(attrNeededValuess)):
 			if (topK[attrID][valIndex][0] not in tempresult and topK[attrID][valIndex][0] not in buffer):
 				#print(f"SELECT {','.join(attrList)} FROM autompg WHERE id = {topK[i][0][0]}")
+				#print(topK[attrID][valIndex][0])
 				helper = helperFunctions.getResultOfQuery(mainDBCon, f"SELECT {','.join(attrList)} FROM autompg WHERE id = {topK[attrID][valIndex][0]}")
-				buffer.append([topK[attrID][valIndex][0],helper[0][0]])
-				maxValueHelper[attrID] = helper[0][0]
+				helper = getIdValue(helper,attrNeededValuess,categorischeIDFDictionairy, attrID)
+				buffer.append([topK[attrID][valIndex][0],helper[0]])
+				maxValueHelper[attrID] = helper[1]
 		maxValue = sum(maxValueHelper)
-		
 		for bufferItem in buffer:
 			if (bufferItem[1] >= maxValue):
 				tempresult.append(bufferItem)
@@ -95,11 +98,6 @@ def topK(attrNeededValuess,k):
 		nonties = list(filter(lambda x : x[1] > tempresult[k-1][1], tempresult))
 		tiesSection = tieBreaker(list(filter(lambda x : x[1] == tempresult[k-1][1], tempresult)), k - len(nonties), attrNeededValuess)
 		result = nonties + tiesSection
-		print (f"temprestulr  {tempresult}")
-		print (f"result  {result}")
-		print (f"nonties  {nonties}")
-		print (f"k {k}")
-		print (f"ties {tiesSection}")
 	else:
 		result = tempresult
 	return result
@@ -136,15 +134,18 @@ def fillMinMaxDictionairy():
 #input [edited value of all parts], score function
 def getIdValue(values, attrNeededValuess, categorischeIDFDictionairy, importantValueIndex):
 	result = 0
+	values[0] = list(values[0])
 	for i in range(len(attrNeededValuess)):
 		if attrNeededValuess[i][0] not in categorischeData:
 			#(attr max diff-(attrQueryvalue - attrRealValue)^2/maxdiff) with a mininmum of 0 and a max of 1
-			values[i] = max(0, ((attrMaxDiffDictionairy[attrNeededValuess[i][0]] - pow((attrNeededValuess[i][2]-values[i]),2))/attrMaxDiffDictionairy[attrNeededValuess[i][0]]))
+			values[0][i] = 1 / (1+log2(1+abs( int(attrNeededValuess[i][2]) - values[0][i])/  (int(attrNeededValuess[i][2])+values[0][i])))
+			#max(0, ((attrMaxDiffDictionairy[attrNeededValuess[i][0]] - pow((attrNeededValuess[i][2]-values[i]),2))/attrMaxDiffDictionairy[attrNeededValuess[i][0]]))
 		else:
-			values[i] = categorischeIDFDictionairy[values[i]]
+			values[0][i] = categorischeIDFDictionairy[values[0][i]]
 		if i == importantValueIndex:
-			importantValue = values[i]*attrNeededValuess[i][1]
-		result += values[i]*attrNeededValuess[i][1]
+			importantValue = values[0][i]*attrNeededValuess[i][1]
+		result += values[0][i]*attrNeededValuess[i][1]
+	
 	return [result,importantValue]
 
 
@@ -163,10 +164,10 @@ def getTopXNumericalData(attr, x, expectedValue):
 			result.append(toLowerValues[k])
 			k += 1
 		if (j >= len(toHigherValues)):
-			result.append(toLowerValues[k:])
+			result.extend(toLowerValues[k:])
 			break
 		if (k >= len(toLowerValues)):
-			result.append(toHigherValues[j:])
+			result.extend(toHigherValues[j:])
 			break
 	return result
 		
@@ -194,7 +195,7 @@ def getTopXCatagoricalData(attr ,x ,expectedValue):
 if __name__ == "__main__": #only execute this code when this file is ran directly incase we want to import functions from here
 	#fillMinMaxDictionairy()
 	#print(getIdValue(list(helperFunctions.getResultOfQuery(mainDBCon, "SELECT mpg, cylinders, displacement, brand from autompg where id = 10;")[0]), [['mpg',1,100],['cylinders',1, 3],['displacement',1, 5],['brand',1, 'ford']],0))
-	temp = transformCEQ("cylinders = 4, brand = 'ford'")
+	temp = transformCEQ("k = 100, brand = 'volkswagen', model = 'dasher'")
 	print(dependentiesToTopK(temp[0],temp[1]))
 	#print(getTopXCatagoricalData('brand',300 ,'ford'))
 	#print(getTopXNumericalData('weight',20 ,3000))
