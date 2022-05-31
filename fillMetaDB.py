@@ -3,6 +3,10 @@ import math
 import helperFunctions
 from statistics import stdev
 
+#Made by:
+#Olivia Lohmann: (8742779)
+#Wifried Snijders(8657078)
+
 
 def executeQuery(cur, query):
 	filename = None

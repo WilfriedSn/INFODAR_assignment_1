@@ -1,6 +1,11 @@
 import sqlite3
 import helperFunctions
 
+#Made by:
+#Olivia Lohmann: (8742779)
+#Wifried Snijders(8657078)
+
+
 with open("autompg.txt", "r") as file:
 	
 	db = helperFunctions.createSQLITEDB("mainDatabase.db")

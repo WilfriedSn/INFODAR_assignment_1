@@ -3,6 +3,11 @@ import sqlite3
 import os.path
 from unittest import result # for createSQLITEDB
 
+#Made by:
+#Olivia Lohmann: (8742779)
+#Wifried Snijders(8657078)
+
+
 #returns all lines from a file
 def readFile(fileName):
 	with open(fileName, 'r') as f:

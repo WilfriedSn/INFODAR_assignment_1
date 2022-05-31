@@ -3,6 +3,9 @@ import helperFunctions
 import functools
 import pprint as pp
 
+#Made by:
+#Olivia Lohmann: (8742779)
+#Wifried Snijders(8657078)
 
 categorischeData = ['brand','model','type']
 allPossibleAttributes = ['mpg','cylinders','displacement','horsepower','weight','acceleration','model_year','origin','brand','model','type']
