@@ -14,6 +14,7 @@ from unittest import result
 from xml.dom.minidom import Attr # for createSQLITEDB
 import helperFunctions
 import functools
+import pprint as pp
 
 
 categorischeData = ['brand','model','type']
@@ -117,10 +118,12 @@ def topK(attrNeededValuess,k):
 		maxValueHelper.append(attr[1])
 	maxValue = calcWeightedScore(maxValueHelper, QFWights)
 
+	print(min(map(lambda x : len(x), topK)))
+
 	#get the topK
 	for valIndex in range(min(map(lambda x : len(x), topK))):
 		for attrID in range(len(attrNeededValuess)):
-			if (topK[attrID][valIndex][0] not in tempresult and topK[attrID][valIndex][0] not in buffer):
+			if (topK[attrID][valIndex][0] not in list(map(lambda x:x[0], tempresult)) and topK[attrID][valIndex][0] not in list(map(lambda x:x[0], buffer))):
 				#print(f"SELECT {','.join(attrList)} FROM autompg WHERE id = {topK[i][0][0]}")
 				#print(topK[attrID][valIndex][0])
 				carValues = helperFunctions.getResultOfQuery(mainDBCon, f"SELECT {','.join(attrList)} FROM autompg WHERE id = {topK[attrID][valIndex][0]}") 
@@ -131,9 +134,8 @@ def topK(attrNeededValuess,k):
 		maxValue = calcWeightedScore(maxValueHelper, QFWights)
 		for bufferItem in buffer:
 			if (bufferItem[1] >= maxValue):
-				tempresult.append(bufferItem)
-				buffer.remove(bufferItem)
-	#break when topK is full
+					tempresult.append(bufferItem)
+					buffer.remove(bufferItem)
 		if (len(tempresult)>k):
 			break
 
@@ -162,8 +164,8 @@ def getIdValue(values, attrNeededValuess, categorischeIDFDictionairy, importantV
 #gets the top X*2 numerical values from the database
 def getTopXNumericalData(attr, x, expectedValue):
 	expectedValue = int(expectedValue)
-	toHigherValues = helperFunctions.getResultOfQuery(mainDBCon, f"SELECT id, {attr} FROM autompg WHERE {attr} >= {expectedValue} order by {attr} asc limit {x};")
-	toLowerValues = helperFunctions.getResultOfQuery(mainDBCon, f"SELECT id, {attr} FROM autompg WHERE {attr} < {expectedValue} order by {attr} desc limit {x};")
+	toHigherValues = helperFunctions.getResultOfQuery(mainDBCon, f"SELECT id, {attr} FROM autompg WHERE {attr} >= {expectedValue} order by {attr};")
+	toLowerValues = helperFunctions.getResultOfQuery(mainDBCon, f"SELECT id, {attr} FROM autompg WHERE {attr} < {expectedValue} order by {attr} ;")
 	result = []
 	j = 0
 	k = 0
@@ -244,8 +246,8 @@ def displayResult(result):
 		print(totalResultString)
 
 if __name__ == "__main__": #only execute this code when this file is ran directly incase we want to import functions from here
-	userInput = input()
-	#userInput = "k = 10, horsepower = 100, brand = 'ford'"
+	#userInput = input()
+	userInput = "k = 10, horsepower = 100, brand = 'ford'"
 	userInput = transformCEQ(userInput)
 	userInput = checkIfValidQuery(dependentiesToTopK(userInput[0], userInput[1]))
 	if userInput != False:
