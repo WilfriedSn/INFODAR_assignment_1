@@ -38,12 +38,37 @@ def transformCEQ(line):
 def topK(attrNeededValues,k):
 	x = attrNeededValues.length()*k*1.5
 	topK = []
+	categorischeIDFDictionairy = {}
+
 	for attr in attrNeededValues:
 		if attr[0] in categorischeData:
-			topK.append(getTopXCatagoricalData(attr[0],attr[2]))
+			temp = (getTopXCatagoricalData(attr[0] ,x ,attr[2]))
+			topK.append(temp[0])
+			for cata in temp[1]:
+				categorischeIDFDictionairy[cata[0]] = cata[1]
 		else:
-			topK.append(getTopXNumericalData(attr[0],attr[2]))
-	...
+			topK.append(getTopXNumericalData(attr[0] ,x ,attr[2]))
+	
+	result = []
+	buffer = []
+	maxvalue = ...
+	while (len(result)<k):
+		for i in len(attrNeededValues):
+			if (topK[i][0] not in result and topK[i][0] not in buffer):
+				...
+
+
+
+
+			
+#returns the value of the ID
+#input [edited value of all parts], score function
+def getIdValue(values, scoreFunction):
+	result = 0
+	for i in range(len(values)):
+		result += values[i]*scoreFunction[i]
+	return result
+
 
 def getTopXNumericalData(attr, x, expectedValue):
 	toHigherValues = helperFunctions.getResultOfQuery(mainDBCon, f"SELECT id, {attr} FROM autompg WHERE {attr} >= {expectedValue} order by {attr} asc limit {round(x)};")
